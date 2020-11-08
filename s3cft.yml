@@ -5,8 +5,8 @@ Resources:
   MyWebServerInstance:
     Type: AWS::EC2::Instance
     Properties:
-        InstanceType: t2.micro
-        ImageId: ami-00077d52e03c27342
+       - InstanceType: t2.micro
+       - ImageId: ami-0a669382ea0feb73a
 Outputs:
   BucketName:
     Value: !Ref 'S3Bucket'
