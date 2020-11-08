@@ -4,11 +4,11 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
   MyWebServerInstance:
-    Type: 'AWS::EC2::Instance'
+    Type: AWS::EC2::Instance
     Properties:
-        InstanceType: 't2.micro'
-        ImageId: 'ami-00077d52e03c27342'
+        InstanceType: t2.micro
+        ImageId: ami-00077d52e03c27342
 Outputs:
   BucketName:
-    Value: !Ref 'S3Bucket'
-    Description: 'Name of the sample Amazon S3 bucket'
+    Value: !Ref S3Bucket
+    Description: Name of the sample Amazon S3 bucket
