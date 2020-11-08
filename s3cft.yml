@@ -1,13 +1,13 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description : 'My First Cloud Formation Template'
+Description: 'My First Cloud Formation Template'
 Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
   MyWebServerInstance:
     Type: 'AWS::EC2::Instance'
-    Properties :
-        InstanceType : 't2.micro'
-        ImageId : 'ami-00077d52e03c27342'
+    Properties:
+        InstanceType: 't2.micro'
+        ImageId: 'ami-00077d52e03c27342'
 Outputs:
   BucketName:
     Value: !Ref 'S3Bucket'
