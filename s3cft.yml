@@ -2,11 +2,9 @@ AWSTemplateFormatVersion: '2010-09-09'
 Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
-  MyWebServerInstance:
-    Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0a669382ea0feb73a
-      InstanceType: 't2.micro'
+        BucketName: 'faiz-first-dev-bucket'
+    
 Outputs:
   BucketName:
     Value: !Ref 'S3Bucket'
