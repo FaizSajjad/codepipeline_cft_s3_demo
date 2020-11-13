@@ -1,0 +1,257 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: The AWS CloudFormation template for creating resources using Elastic Beanstalk
+Parameters:
+  ProjectName:
+    Type: String
+    Description: ProjectName
+  ENV:
+    Type: String
+    Description: String value indicating environment, Any one of this value dev/uat/prod
+    AllowedValues: 
+      - "dev"
+      - "stg"
+      - "prd"
+  VPCID:
+    Type: String
+    Description: String value indicating VPC
+  SubnetIds:
+    Type: String
+    Description: String value indicating VPC SubnetIds
+
+  EC2KeyName:
+    Type: String
+    Description: EC2 key pair name
+
+  EC2Subnets:
+    Type: String
+    Description: EC2Subnets of VPC Envorinment
+  ELBSubnets:
+    Type: String
+    Description: ELBSubnets of VPC Envorinment
+  ELBVisibility:
+    Type: String
+    Description: Specify internal if you want to create an internal load balancer in your Amazon VPC 
+    AllowedValues:
+      - public
+      - internal
+    Default: internal
+  LogRetentionInDays:
+    Type: Number
+    Default: 14
+    Description: The Amazon EC2 instance log retention in days
+
+  NodeJSApiInstanceType:
+    Type: String
+    AllowedValues:
+      - t2.nano 
+      - t2.micro 
+      - t2.small 
+      - t2.medium 
+      - t2.large 
+      - t2.xlarge 
+      - t2.2xlarge  
+      - t3.medium 
+    ConstraintDescription: Must be a valid Amazon EC2 instance type.
+    Default: t2.micro
+    Description: The Amazon EC2 instance type for your web instances.
+  NodeJSApiInstanceMinSize:
+    Type: Number
+    Description: Minimum instance of NodeJSApi server
+  NodeJSApiInstanceMaxSize:
+    Type: Number
+    Description: Maximum instance of NodeJSApi server
+
+Resources:
+  NBISWorkersServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-${ENV}-workers-service-role 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - elasticbeanstalk.amazonaws.com
+            Action:
+              - sts:AssumeRole          
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService
+      Policies: 
+        - PolicyName: !Sub ${ProjectName}-${ENV}-workers-policy
+          PolicyDocument: 
+            Version: 2012-10-17 
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: "*"
+  NBISWorkersSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: !Sub ${ProjectName}-${ENV}-eb-workers-sg
+      GroupName: !Sub ${ProjectName}-${ENV}-eb-workers-sg
+      SecurityGroupEgress: 
+        - IpProtocol: "-1" 
+          CidrIp: "0.0.0.0/0" 
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 10.240.2.103/32
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 10.240.2.103/32  
+
+      VpcId: !Ref VPCID  
+
+  NodeJsApplicationVersion:
+    Type: AWS::ElasticBeanstalk::ApplicationVersion
+    Properties:
+      ApplicationName: !Ref NBISApplication      
+      Description: Nodejs api application
+      SourceBundle:
+        S3Bucket:
+          Fn::Join:
+          - "-"
+          - - elasticbeanstalk-samples
+            - !Ref AWS::Region
+        S3Key: nodejs-sample.zip
+  NBISApplication:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      ApplicationName: !Sub ${ProjectName}-${ENV}
+      Description: AWS Elastic Beanstalk for NBIS Api & Workers
+  NBISInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-${ENV}-eb-instance-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /
+      Policies:
+      - PolicyName: !Sub ${ProjectName}-${ENV}-eb-instance-role-policy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:          
+          - Effect: Allow
+            Action: "*"
+              # - logs:*              
+            Resource: "*"
+  NBISInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub ${ProjectName}-${ENV}-eb-instance-profile
+      Path: /
+      Roles:
+        - !Ref NBISInstanceRole
+
+  NodejsApiEnvironment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties: 
+      ApplicationName: !Ref NBISApplication
+      Description: "AWS Elastic Beanstalk Environment running api(Nodejs)"
+      EnvironmentName: !Sub ${ProjectName}-${ENV}-nodejs-api
+      SolutionStackName: "64bit Amazon Linux 2 v5.2.3 running Node.js 12"
+      VersionLabel: !Ref NodeJsApplicationVersion
+      Tier:
+        Name: WebServer
+        Type: Standard
+      OptionSettings:
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: IamInstanceProfile
+          Value: !Ref NBISInstanceProfile 
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: EnvironmentType
+          Value: LoadBalanced
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: LoadBalancerType
+          Value: application
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: ServiceRole
+          Value: !Ref NBISWorkersServiceRole      
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: EC2KeyName
+          Value: !Ref EC2KeyName
+        
+        # Auto scaling
+        - Namespace: aws:autoscaling:asg
+          OptionName: MinSize
+          Value: !Ref NodeJSApiInstanceMinSize
+        - Namespace: aws:autoscaling:asg
+          OptionName: MaxSize
+          Value: !Ref NodeJSApiInstanceMaxSize
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: InstanceType
+          Value: !Ref NodeJSApiInstanceType
+
+        #  Health Check Options
+        - Namespace: aws:elasticbeanstalk:environment:process:default
+          OptionName: HealthCheckPath
+          Value: "/"        
+
+        - Namespace: aws:elasticbeanstalk:environment:process:default
+          OptionName: Protocol
+          Value: HTTP
+          
+        - Namespace: aws:elasticbeanstalk:environment:process:default
+          OptionName: Port
+          Value: 80 
+                
+        # VPC OPTIONS (PLACEMENT OF RESOURCES IN SUBNETS)
+        - Namespace: aws:ec2:vpc
+          OptionName: ELBSubnets
+          Value: !Ref ELBSubnets
+        - Namespace: aws:ec2:vpc
+          OptionName: ELBScheme
+          Value: !Ref ELBVisibility
+        - Namespace: aws:ec2:vpc
+          OptionName: Subnets
+          Value: !Ref EC2Subnets
+        - Namespace: aws:ec2:vpc
+          OptionName: VPCId
+          Value: !Ref VPCID          
+        - Namespace: aws:ec2:vpc
+          OptionName: AssociatePublicIpAddress
+          Value: true
+
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: SecurityGroups
+          Value: !Ref NBISWorkersSecurityGroup
+      
+        # CLOUDWATCH LOGS
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+          OptionName: StreamLogs
+          Value: true
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+          OptionName: RetentionInDays
+          Value: !Ref LogRetentionInDays
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+          OptionName: DeleteOnTerminate
+          Value: true
+
+        # ENVIRONMENT VARIABLES
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: NODE_ENV
+          Value: !Ref ENV
+Outputs:
+  VpcId:
+    Description: Vpc Id
+    Value: !Ref VPCID
+    Export: 
+      Name: !Sub "${AWS::StackName}-vpc-id"    
+  SubnetIds:
+    Description: SubnetIds
+    Value: !Ref SubnetIds
+    Export: 
+      Name: !Sub "${AWS::StackName}-subnet-ids"

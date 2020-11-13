@@ -1,0 +1,50 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "nbis"
+  },
+  {
+    "ParameterKey": "ENV",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "VPCID",
+    "ParameterValue": "vpc-451c662d"
+  },
+  {
+    "ParameterKey": "SubnetIds",
+    "ParameterValue": "subnet-0ad55d70,subnet-723ce33e,subnet-c8367aa1"
+  },
+  {
+    "ParameterKey": "EC2KeyName",
+    "ParameterValue": "personal-keypair"
+  },
+  {
+    "ParameterKey": "EC2Subnets",
+    "ParameterValue": "subnet-0ad55d70,subnet-723ce33e,subnet-c8367aa1"
+  },
+  {
+    "ParameterKey": "ELBSubnets",
+    "ParameterValue": "subnet-0ad55d70,subnet-723ce33e,subnet-c8367aa1"
+  },
+  {
+    "ParameterKey": "ELBVisibility",
+    "ParameterValue": "public"
+  },
+  {
+    "ParameterKey": "LogRetentionInDays",
+    "ParameterValue": "14"
+  },
+  {
+    "ParameterKey": "NodeJSApiInstanceType",
+    "ParameterValue": "t2.micro"
+  },
+  {
+    "ParameterKey": "NodeJSApiInstanceMinSize",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "NodeJSApiInstanceMaxSize",
+    "ParameterValue": "1"
+  }
+]
