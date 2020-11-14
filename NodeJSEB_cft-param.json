@@ -9,7 +9,7 @@
   },
   {
     "ParameterKey": "VPCID",
-    "ParameterValue": "vpc-451c662d"
+    "ParameterValue": "vpc-068924289558ec8e9"
   },
   {
     "ParameterKey": "SubnetIds",
@@ -21,11 +21,11 @@
   },
   {
     "ParameterKey": "EC2Subnets",
-    "ParameterValue": "subnet-0ad55d70,subnet-723ce33e,subnet-c8367aa1"
+    "ParameterValue": "subnet-0db53d83e82a0ad22,subnet-0bf004d065332806a"
   },
   {
     "ParameterKey": "ELBSubnets",
-    "ParameterValue": "subnet-0ad55d70,subnet-723ce33e,subnet-c8367aa1"
+    "ParameterValue": "subnet-0d6312a18de452419,subnet-0a04557a259b9d5cf"
   },
   {
     "ParameterKey": "ELBVisibility",
@@ -33,7 +33,7 @@
   },
   {
     "ParameterKey": "LogRetentionInDays",
-    "ParameterValue": "14"
+    "ParameterValue": "7"
   },
   {
     "ParameterKey": "NodeJSApiInstanceType",
