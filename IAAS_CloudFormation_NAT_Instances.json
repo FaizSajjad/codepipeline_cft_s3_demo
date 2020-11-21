@@ -257,18 +257,18 @@
 	}	
   },
   "Outputs": {
-	"VPCCIDR" : {
-		"Value" : {"Fn::GetAtt": ["VPCBase", "CidrBlock"]},
-		"Export": {"Name": "VPCCIDR"}
+	"VpcId" : {
+		"Value" : { "Ref": "VPCBase"},
+		"Export": {"Name" : {"Fn::Sub" : "${AWS::StackName}-VpcId"}}
 	},
     "SubnetPublicAZs" : {
-		"Value" : { "Fn::Join" : ["", [{"Fn::FindInMap" : [ "VPCRanges", { "Ref": "CIDRRange"}, "PublicSubnetAZ1"]}, 							    ",",
-										{"Fn::FindInMap" : [ "VPCRanges", { "Ref": "CIDRRange"}, "PublicSubnetAZ2"]}
-									  ]
-								 ]
-				  },
+		"Value" : { "Fn::Join" : ["", [{"Ref" : "PublicNetAZ1"}, ",", {"Ref" : "PublicNetAZ2"}]]},
 		"Export": {"Name" : {"Fn::Sub" : "${AWS::StackName}-PublicNetAZs"}}
 	},
+   "SubnetPrivateAZs" : {
+		"Value" : { "Fn::Join" : ["", [{"Ref" : "PrivateNetAZ1"}, ",", {"Ref" : "PrivateNetAZ2"}]]},
+		"Export": {"Name" : {"Fn::Sub" : "${AWS::StackName}-PrivateNetAZs"}}
+	},	
     "DefaultSG" : { "Value" : { "Fn::GetAtt" : ["VPCBase", "DefaultSecurityGroup"] }}
 }
 }

@@ -4,16 +4,12 @@
     "ParameterValue": "nbis"
   },
   {
+    "ParameterKey": "ProjectEnvCFTStack",
+    "ParameterValue": "custom-vpc-resources-cft"
+  }, 
+  {
     "ParameterKey": "ENV",
     "ParameterValue": "dev"
-  },
-  {
-    "ParameterKey": "VPCID",
-    "ParameterValue": "vpc-068924289558ec8e9"
-  },
-  {
-    "ParameterKey": "SubnetIds",
-    "ParameterValue": "subnet-0ad55d70,subnet-723ce33e,subnet-c8367aa1"
   },
   {
     "ParameterKey": "EC2KeyName",

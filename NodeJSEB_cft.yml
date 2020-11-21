@@ -4,6 +4,9 @@ Parameters:
   ProjectName:
     Type: String
     Description: ProjectName
+  ProjectEnvCFTStack: 
+    Type: String 
+    Description: Name of the project ProjectEnvCFTStack. 
   ENV:
     Type: String
     Description: String value indicating environment, Any one of this value dev/uat/prod
@@ -11,13 +14,6 @@ Parameters:
       - "dev"
       - "stg"
       - "prd"
-  VPCID:
-    Type: String
-    Description: String value indicating VPC
-  SubnetIds:
-    Type: String
-    Description: String value indicating VPC SubnetIds
-
   EC2KeyName:
     Type: String
     Description: EC2 key pair name
@@ -106,7 +102,8 @@ Resources:
           ToPort: 80
           CidrIp: 10.240.2.103/32  
 
-      VpcId: !Ref VPCID  
+      VpcId: 
+        Fn::ImportValue: !Sub "${ProjectEnvCFTStack}-VpcId"
 
   NodeJsApplicationVersion:
     Type: AWS::ElasticBeanstalk::ApplicationVersion
@@ -211,16 +208,19 @@ Resources:
         # VPC OPTIONS (PLACEMENT OF RESOURCES IN SUBNETS)
         - Namespace: aws:ec2:vpc
           OptionName: ELBSubnets
-          Value: !Ref ELBSubnets
+          Value: 
+            Fn::ImportValue: !Sub "${ProjectEnvCFTStack}-PublicNetAZs"
         - Namespace: aws:ec2:vpc
           OptionName: ELBScheme
           Value: !Ref ELBVisibility
         - Namespace: aws:ec2:vpc
           OptionName: Subnets
-          Value: !Ref EC2Subnets
+          Value: 
+            Fn::ImportValue: !Sub "${ProjectEnvCFTStack}-PrivateNetAZs"
         - Namespace: aws:ec2:vpc
           OptionName: VPCId
-          Value: !Ref VPCID          
+          Value: 
+            Fn::ImportValue: !Sub "${ProjectEnvCFTStack}-VpcId"  
         - Namespace: aws:ec2:vpc
           OptionName: AssociatePublicIpAddress
           Value: false
@@ -247,11 +247,13 @@ Resources:
 Outputs:
   VpcId:
     Description: Vpc Id
-    Value: !Ref VPCID
+    Value: 
+      Fn::ImportValue: !Sub "${ProjectEnvCFTStack}-VpcId"
     Export: 
-      Name: !Sub "${AWS::StackName}-vpc-id"    
+      Name: !Sub "${AWS::StackName}-VpcId"
   SubnetIds:
     Description: SubnetIds
-    Value: !Ref SubnetIds
+    Value: 
+      Fn::ImportValue: !Sub "${ProjectEnvCFTStack}-PrivateNetAZs"
     Export: 
       Name: !Sub "${AWS::StackName}-subnet-ids"
