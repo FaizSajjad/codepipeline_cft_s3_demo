@@ -1,0 +1,267 @@
+{
+  "Parameters": {
+    "CIDRRange": {
+      "Description": "VPCCIDR Range (will be a /16 block)",
+      "Type": "String",
+      "Default": "10.251.0.0",
+      "AllowedValues": ["10.250.0.0","10.251.0.0"]
+    }
+  },
+  "Mappings": {
+    "RegionWiseNATAMIMap" : {
+      "us-east-1"      : { "AMI" : "ami-01623d7b"},
+      "us-west-1"      : { "AMI" : "ami-004b0f60"},
+      "us-west-2"      : { "AMI" : "ami-0032ea5ae08aa27a2"},
+	  "eu-west-2"      : { "AMI" : "ami-00fe444797752bd96"}
+    },
+    "VPCRanges": {
+      "10.250.0.0": {
+        "PublicSubnetAZ1"   : "10.250.0.0/22",
+        "PublicSubnetAZ2"   : "10.250.4.0/22",
+        "PrivateSubnetAZ1"  : "10.250.32.0/21",
+        "PrivateSubnetAZ2"  : "10.250.40.0/21"
+      },
+      "10.251.0.0": {
+        "PublicSubnetAZ1"   : "10.251.0.0/22",
+        "PublicSubnetAZ2"   : "10.251.4.0/22",
+        "PrivateSubnetAZ1"  : "10.251.32.0/21",
+        "PrivateSubnetAZ2"  : "10.251.40.0/21"
+      }
+    }
+  },
+  "Resources": {
+    "VPCBase": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": { "Fn::Join" : ["", [{ "Ref" : "CIDRRange" }, "/16"]] },
+        "EnableDnsSupport": "True",
+        "EnableDnsHostnames": "True",
+        "Tags": [
+          { "Key": "Name", "Value":    { "Fn::Join" : ["", [{ "Ref" : "AWS::StackName" }, "-VPC"]] } }
+        ]
+      }
+    },
+    "PublicNetAZ1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::Select": [ "0", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ] },
+        "CidrBlock": { "Fn::FindInMap" : [ "VPCRanges", { "Ref": "CIDRRange"}, "PublicSubnetAZ1"] },
+        "MapPublicIpOnLaunch": "True",
+        "Tags": [
+          { "Key": "Name", "Value": { "Fn::Join" : ["", [{ "Ref" : "AWS::StackName" }, "-PublicAZ1"]] } }
+        ],
+        "VpcId": { "Ref": "VPCBase" }
+      }
+    },
+    "PublicNetAZ2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::Select": [ "1", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ] },
+        "CidrBlock": { "Fn::FindInMap" : [ "VPCRanges", { "Ref": "CIDRRange"},  "PublicSubnetAZ2" ] },
+        "MapPublicIpOnLaunch": "True",
+        "Tags": [
+          { "Key": "Name", "Value": { "Fn::Join" : ["", [{ "Ref" : "AWS::StackName" }, "-PublicAZ2"]] } }
+        ],
+        "VpcId": { "Ref": "VPCBase" }
+      }
+    },
+    "PrivateNetAZ1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::Select": [ "0", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ] },
+        "CidrBlock": { "Fn::FindInMap" : [ "VPCRanges", { "Ref": "CIDRRange"},  "PrivateSubnetAZ1" ] },
+        "MapPublicIpOnLaunch": "False",
+        "Tags": [
+          { "Key": "Name", "Value": { "Fn::Join" : ["", [{ "Ref" : "AWS::StackName" }, "-PrivateAZ1"]] } },
+          { "Key": "Network", "Value": "private" }
+        ],
+        "VpcId": { "Ref": "VPCBase" }
+      }
+    },
+    "PrivateNetAZ2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::Select": [ "1", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ] },
+        "CidrBlock": { "Fn::FindInMap" : [ "VPCRanges", { "Ref": "CIDRRange"},  "PrivateSubnetAZ2" ] },
+        "MapPublicIpOnLaunch": "False",
+        "Tags": [
+          { "Key": "Name", "Value": { "Fn::Join" : ["", [{ "Ref" : "AWS::StackName" }, "-PrivateAZ2"]] } },
+          { "Key": "Network", "Value": "private" }
+        ],
+        "VpcId": { "Ref": "VPCBase" }
+      }
+    },
+    "IGWBase" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "Properties" : {
+        "Tags" : [
+          { "Key": "Name", "Value": { "Fn::Join" : ["", [{ "Ref" : "AWS::StackName" }, "-IGW"]] } }
+        ]
+      }
+    },
+    "VGAIGWBase" : {
+      "Type" : "AWS::EC2::VPCGatewayAttachment",
+      "Properties" : {
+        "InternetGatewayId" : { "Ref" : "IGWBase" },
+        "VpcId" : { "Ref" : "VPCBase" }
+      }
+    },
+    "RouteTablePublic" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPCBase" },
+        "Tags" : [
+          { "Key": "Name", "Value": { "Fn::Join" : ["", [{ "Ref" : "AWS::StackName" }, "-PublicRT"]] } }
+        ]
+      }
+    },
+    "RouteTablePrivateAZ1" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPCBase" },
+        "Tags" : [
+          { "Key": "Name", "Value": { "Fn::Join" : ["", [{ "Ref" : "AWS::StackName" }, "-PrivateAZ1RT"]] } }
+        ]
+      }
+    },
+    "RouteTablePrivateAZ2" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPCBase" },
+        "Tags" : [
+          { "Key": "Name", "Value": { "Fn::Join" : ["", [{ "Ref" : "AWS::StackName" }, "-PrivateAZ2RT"]] } }
+        ]
+      }
+    },
+    "RoutePublicDefault" : {
+      "DependsOn": [ "VGAIGWBase" ],
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "RouteTablePublic" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "IGWBase" }
+      }
+    },
+    "RouteAssociationPublicAZ1Default" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PublicNetAZ1"},
+        "RouteTableId" : { "Ref" : "RouteTablePublic" }
+      }
+    },
+    "RouteAssociationPublicAZ2Default" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PublicNetAZ2"},
+        "RouteTableId" : { "Ref" : "RouteTablePublic" }
+      }
+    },
+    "RouteAssociationPrivateAZ1Default" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PrivateNetAZ1"},
+        "RouteTableId" : { "Ref" : "RouteTablePrivateAZ1" }
+      }
+    },
+    "RouteAssociationPrivateAZ2Default" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PrivateNetAZ2"},
+        "RouteTableId" : { "Ref" : "RouteTablePrivateAZ2" }
+      }
+    },	
+    "NATAZ1" : {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn" : "VGAIGWBase",
+      "Properties" :{
+        "InstanceType" : "t2.micro",
+        "ImageId" : { "Fn::FindInMap" : [ "RegionWiseNATAMIMap", { "Ref" : "AWS::Region" }, "AMI" ]},
+		"NetworkInterfaces" : [
+			{
+				"GroupSet" : [
+					{
+						"Ref" : "NATSecurityGroup"
+					}
+				],
+				"AssociatePublicIpAddress" : "true",
+				"DeviceIndex" : "0",
+				"DeleteOnTermination" : "true",
+				"SubnetId" : {
+					"Ref" : "PublicNetAZ1"
+				}
+			}
+		],	
+        "SourceDestCheck" : "false"
+      }
+    },
+    "NATAZ1Route" : {
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "RouteTablePrivateAZ1" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "InstanceId" : { "Ref" : "NATAZ1" }
+      }
+    },
+    "NATAZ2" : {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn" : "VGAIGWBase",
+      "Properties" :{
+        "InstanceType" : "t2.micro",
+        "ImageId" : { "Fn::FindInMap" : [ "RegionWiseNATAMIMap", { "Ref" : "AWS::Region" }, "AMI" ]},
+		"NetworkInterfaces" : [
+			{
+				"GroupSet" : [
+					{
+						"Ref" : "NATSecurityGroup"
+					}
+				],
+				"AssociatePublicIpAddress" : "true",
+				"DeviceIndex" : "0",
+				"DeleteOnTermination" : "true",
+				"SubnetId" : {
+					"Ref" : "PublicNetAZ2"
+				}
+			}
+		],
+        "SourceDestCheck" : "false"
+      }
+    },
+    "NATAZ2Route" : {
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "RouteTablePrivateAZ2" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "InstanceId" : { "Ref" : "NATAZ2" }
+      }
+    },
+	"NATSecurityGroup" : {
+		  "Type" : "AWS::EC2::SecurityGroup",
+		  "Properties" : {
+			"GroupDescription" : "Enable http and https access to Server Instance",
+			"VpcId" : { "Ref" : "VPCBase" },
+			"SecurityGroupIngress" : [
+			  {
+				"IpProtocol" : "tcp",
+				"FromPort" : "80",
+				"ToPort" : "80",
+				"CidrIp" : "0.0.0.0/0"
+			  },
+			  {
+				"IpProtocol" : "tcp",
+				"FromPort" : "443",
+				"ToPort" : "443",
+				"CidrIp" : "0.0.0.0/0"
+			  }
+			]
+		  }
+	}	
+  },
+  "Outputs": {
+    "VPCID" : { "Value" : { "Ref" : "VPCBase" } },
+    "SubnetPublicAZ1" : { "Value" : { "Ref" : "PublicNetAZ1"} },
+    "SubnetPublicAZ2" : { "Value" : { "Ref" : "PublicNetAZ2"} },
+    "SubnetPrivateAZ1" : { "Value" : { "Ref" : "PrivateNetAZ1"} },
+    "SubnetPrivateAZ2" : { "Value" : { "Ref" : "PrivateNetAZ2"} },
+    "DefaultSG" : { "Value" : { "Fn::GetAtt" : ["VPCBase", "DefaultSecurityGroup"] }}
+  }
+}
