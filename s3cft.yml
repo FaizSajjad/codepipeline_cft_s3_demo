@@ -3,7 +3,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-        BucketName: 'faiz-first-dev-bucket'
+        BucketName: 'faiz-first-dev-bucket-2'
     
 Outputs:
   BucketName:
